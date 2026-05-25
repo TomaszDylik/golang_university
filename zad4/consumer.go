@@ -43,7 +43,19 @@ func (c *SimpleConsumer) CalculateDemand(gridStep int) float64 {
 
 // Run uruchamia konsumenta i wysyla DemandReport co GridStep.
 func (c *SimpleConsumer) Run(ctx context.Context, wg *sync.WaitGroup) {
-	wg.Add(1)
+	c.run(ctx, wg, false)
+}
+
+// RunReserved uruchamia konsumenta, zakladajac ze slot w WaitGroup jest juz zarezerwowany.
+func (c *SimpleConsumer) RunReserved(ctx context.Context, wg *sync.WaitGroup) {
+	c.run(ctx, wg, true)
+}
+
+func (c *SimpleConsumer) run(ctx context.Context, wg *sync.WaitGroup, reserved bool) {
+	if !reserved {
+		wg.Add(1)
+	}
+
 	go func() {
 		defer wg.Done()
 

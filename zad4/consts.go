@@ -17,6 +17,18 @@ const ForecastHorizon = 5
 // PredictorBufferSize przechowuje jedną godzinę symulacji pogodowej.
 const PredictorBufferSize = WeatherPerGrid
 
+// GridReportEvery określa, co ile krokow GridStep wypisac raport stanu.
+const GridReportEvery = 5
+
+// Parametry prostego magazynu energii.
+const ESSCapacityMWh = 12.0
+const ESSMaxPowerMW = 4.0
+const ESSInitialSoC = 0.5
+
+// Parametry prostej elektrowni konwencjonalnej.
+const PlantMaxPowerMW = 8.0
+const PlantWarmUpSteps = 2
+
 type ConsumerPriority int
 
 const (

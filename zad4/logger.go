@@ -16,6 +16,16 @@ type FileDataLogger struct {
 	filename string
 }
 
+// Log jest zachowane dla zgodnosci z interfejsem; wpisy i tak trafiaja przez kanal.
+func (d *FileDataLogger) Log(entry LogEntry) {
+	_ = entry
+}
+
+// Flush zostaje jako lekka metoda zgodna z interfejsem.
+func (d *FileDataLogger) Flush() error {
+	return nil
+}
+
 // Run uruchamia goroutine loggera.
 func (d *FileDataLogger) Run(ctx context.Context, wg *sync.WaitGroup) {
 	wg.Add(1)
