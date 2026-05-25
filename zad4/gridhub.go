@@ -3,22 +3,69 @@ package main
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 )
 
-// GridHub zbiera dane z kanalow i liczy prosty bilans sieci.
+// GridHub zbiera dane z kanalow i liczy bilans sieci z load sheddingiem.
 type GridHub struct {
 	productionIn <-chan ProductionReport
 	forecastIn   <-chan ForecastReport
 	demandIn     <-chan DemandReport
 	latestProd   ProductionReport
 	latestFc     ForecastReport
-	latestDemand map[string]DemandReport
+	pendingDemand map[string]DemandReport
 	gridStep     int
 }
 
-// Run uruchamia glowna petle select dla obecnego etapu.
+// allocate liczy przydział dla każdego konsumenta i odcina najniższe priorytety przy niedoborze.
+func (g *GridHub) allocate() {
+	if len(g.pendingDemand) == 0 {
+		return
+	}
+
+	// Zbierz raporty i posortuj od najwyzszego priorytetu (1=Critical) do najnizszego (3=Residential).
+	reports := make([]DemandReport, 0, len(g.pendingDemand))
+	for _, r := range g.pendingDemand {
+		reports = append(reports, r)
+	}
+	sort.Slice(reports, func(i, j int) bool {
+		return reports[i].Priority < reports[j].Priority
+	})
+
+	available := g.latestProd.CurrentMW
+
+	for _, r := range reports {
+		var status SupplyStatus
+		if available >= r.RequestedMW {
+			available -= r.RequestedMW
+			status = SupplyStatus{
+				ConsumerID:  r.ConsumerID,
+				AllocatedMW: r.RequestedMW,
+				LoadShed:    false,
+				Reason:      "pelne zasilanie",
+			}
+		} else {
+			status = SupplyStatus{
+				ConsumerID:  r.ConsumerID,
+				AllocatedMW: 0,
+				LoadShed:    true,
+				Reason:      "load shedding",
+			}
+			fmt.Printf("[GRID] LOAD SHED consumer=%s priorytet=%d\n", r.ConsumerID, r.Priority)
+		}
+
+		select {
+		case r.ReplyChan <- status:
+		default:
+		}
+	}
+
+	g.pendingDemand = make(map[string]DemandReport)
+}
+
+// Run uruchamia glowna petle select GridHub.
 func (g *GridHub) Run(ctx context.Context, wg *sync.WaitGroup) {
 	wg.Add(1)
 	go func() {
@@ -37,24 +84,12 @@ func (g *GridHub) Run(ctx context.Context, wg *sync.WaitGroup) {
 			case forecast := <-g.forecastIn:
 				g.latestFc = forecast
 			case demand := <-g.demandIn:
-				g.latestDemand[demand.ConsumerID] = demand
-
-				status := SupplyStatus{
-					ConsumerID:  demand.ConsumerID,
-					AllocatedMW: demand.RequestedMW,
-					LoadShed:    false,
-					Reason:      "pelne zasilanie",
-				}
-
-				select {
-				case demand.ReplyChan <- status:
-				default:
-				}
+				g.pendingDemand[demand.ConsumerID] = demand
 			case <-ticker.C:
 				g.gridStep++
 				totalDemand := 0.0
-				for _, demand := range g.latestDemand {
-					totalDemand += demand.RequestedMW
+				for _, r := range g.pendingDemand {
+					totalDemand += r.RequestedMW
 				}
 
 				balance := g.latestProd.CurrentMW - totalDemand
@@ -67,6 +102,8 @@ func (g *GridHub) Run(ctx context.Context, wg *sync.WaitGroup) {
 					g.latestFc.ExpectedMW,
 					balance,
 				)
+
+				g.allocate()
 			}
 		}
 	}()

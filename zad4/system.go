@@ -77,10 +77,10 @@ func startStarterSystem(ctx context.Context, wg *sync.WaitGroup) {
 		history:     make([]WeatherData, 0, PredictorBufferSize),
 	}
 	gridHub := &GridHub{
-		productionIn: channels.ProductionChan,
-		forecastIn:   channels.ForecastChan,
-		demandIn:     channels.DemandChan,
-		latestDemand: make(map[string]DemandReport),
+		productionIn:  channels.ProductionChan,
+		forecastIn:    channels.ForecastChan,
+		demandIn:      channels.DemandChan,
+		pendingDemand: make(map[string]DemandReport),
 	}
 	criticalConsumer := &SimpleConsumer{
 		id:        "critical_1",
@@ -101,8 +101,8 @@ func startStarterSystem(ctx context.Context, wg *sync.WaitGroup) {
 		replyChan: residentialReply,
 	}
 
-	fmt.Println("[SYSTEM] Etap 6: kilka prostych konsumentow i fan-in do GridHub.")
-	fmt.Println("[SYSTEM] Rejestracja dynamiczna i load shedding beda dopiero pozniej.")
+	fmt.Println("[SYSTEM] Etap 7: GridHub z load sheddingiem wedlug priorytetu.")
+	fmt.Println("[SYSTEM] ESS i elektrownia beda dopiero w kolejnych etapach.")
 
 	station.Run(ctx, wg)
 	broadcaster.Run(ctx, wg)
