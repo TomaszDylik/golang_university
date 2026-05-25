@@ -53,6 +53,7 @@ func newSystemChannels() *SystemChannels {
 // startStarterSystem uruchamia obecne komponenty
 func startStarterSystem(ctx context.Context, wg *sync.WaitGroup) {
 	channels := newSystemChannels()
+	consumerReply := make(chan SupplyStatus, 1)
 
 	station := &WeatherStation{out: channels.WeatherRaw}
 	broadcaster := &Broadcaster{
@@ -76,14 +77,22 @@ func startStarterSystem(ctx context.Context, wg *sync.WaitGroup) {
 	gridHub := &GridHub{
 		productionIn: channels.ProductionChan,
 		forecastIn:   channels.ForecastChan,
+		demandIn:     channels.DemandChan,
+	}
+	consumer := &SimpleConsumer{
+		id:        "consumer_1",
+		priority:  PriorityResidential,
+		demandOut: channels.DemandChan,
+		replyChan: consumerReply,
 	}
 
-	fmt.Println("[SYSTEM] Etap 4: startuje pogoda, farma, predictor i prosty GridHub.")
-	fmt.Println("[SYSTEM] Popyt i wykonawcy beda dopiero w kolejnych etapach.")
+	fmt.Println("[SYSTEM] Etap 5: dochodzi prosty konsument i realny popyt.")
+	fmt.Println("[SYSTEM] ESS i elektrownia beda dopiero w kolejnych etapach.")
 
 	station.Run(ctx, wg)
 	broadcaster.Run(ctx, wg)
 	windFarm.Run(ctx, wg)
 	predictor.Run(ctx, wg)
 	gridHub.Run(ctx, wg)
+	consumer.Run(ctx, wg)
 }

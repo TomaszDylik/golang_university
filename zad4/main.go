@@ -26,7 +26,7 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	fmt.Println("[SYSTEM] Etap 4: prosty GridHub dolaczony do symulacji.")
+	fmt.Println("[SYSTEM] Etap 5: pierwszy konsument dolaczony do bilansu.")
 	startStarterSystem(ctx, &wg)
 
 	wg.Wait()
