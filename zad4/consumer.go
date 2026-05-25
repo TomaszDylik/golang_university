@@ -28,7 +28,17 @@ func (c *SimpleConsumer) Priority() ConsumerPriority {
 
 // CalculateDemand liczy proste zapotrzebowanie dla obecnego kroku.
 func (c *SimpleConsumer) CalculateDemand(gridStep int) float64 {
-	return 2 + float64(gridStep%3)
+	switch c.priority {
+	case PriorityCritical:
+		return 4
+	case PriorityIndustrial:
+		if gridStep%2 == 0 {
+			return 5.5
+		}
+		return 5
+	default:
+		return 2 + float64(gridStep%3)
+	}
 }
 
 // Run uruchamia konsumenta i wysyla DemandReport co GridStep.
@@ -43,10 +53,10 @@ func (c *SimpleConsumer) Run(ctx context.Context, wg *sync.WaitGroup) {
 		for {
 			select {
 			case <-ctx.Done():
-				fmt.Println("[CONSUMER] Koniec pracy konsumenta.")
+				fmt.Printf("[CONSUMER %s] Koniec pracy konsumenta.\n", c.id)
 				return
 			case status := <-c.replyChan:
-				fmt.Printf("[CONSUMER] przydzial=%.1f MW powod=%s\n", status.AllocatedMW, status.Reason)
+				fmt.Printf("[CONSUMER %s] przydzial=%.1f MW powod=%s\n", c.id, status.AllocatedMW, status.Reason)
 			case <-ticker.C:
 				c.gridStep++
 				demand := c.CalculateDemand(c.gridStep)
@@ -64,7 +74,7 @@ func (c *SimpleConsumer) Run(ctx context.Context, wg *sync.WaitGroup) {
 				default:
 				}
 
-				fmt.Printf("[CONSUMER] step=%d popyt=%.1f MW\n", c.gridStep, demand)
+				fmt.Printf("[CONSUMER %s] step=%d popyt=%.1f MW\n", c.id, c.gridStep, demand)
 			}
 		}
 	}()

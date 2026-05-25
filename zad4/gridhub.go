@@ -14,7 +14,7 @@ type GridHub struct {
 	demandIn     <-chan DemandReport
 	latestProd   ProductionReport
 	latestFc     ForecastReport
-	latestDemand DemandReport
+	latestDemand map[string]DemandReport
 	gridStep     int
 }
 
@@ -37,7 +37,7 @@ func (g *GridHub) Run(ctx context.Context, wg *sync.WaitGroup) {
 			case forecast := <-g.forecastIn:
 				g.latestFc = forecast
 			case demand := <-g.demandIn:
-				g.latestDemand = demand
+				g.latestDemand[demand.ConsumerID] = demand
 
 				status := SupplyStatus{
 					ConsumerID:  demand.ConsumerID,
@@ -52,13 +52,18 @@ func (g *GridHub) Run(ctx context.Context, wg *sync.WaitGroup) {
 				}
 			case <-ticker.C:
 				g.gridStep++
-				balance := g.latestProd.CurrentMW - g.latestDemand.RequestedMW
+				totalDemand := 0.0
+				for _, demand := range g.latestDemand {
+					totalDemand += demand.RequestedMW
+				}
+
+				balance := g.latestProd.CurrentMW - totalDemand
 
 				fmt.Printf(
 					"[GRID] step=%d produkcja=%.1f MW popyt=%.1f MW prognoza=%.1f MW bilans=%.1f MW\n",
 					g.gridStep,
 					g.latestProd.CurrentMW,
-					g.latestDemand.RequestedMW,
+					totalDemand,
 					g.latestFc.ExpectedMW,
 					balance,
 				)

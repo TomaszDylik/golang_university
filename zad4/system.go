@@ -53,7 +53,9 @@ func newSystemChannels() *SystemChannels {
 // startStarterSystem uruchamia obecne komponenty
 func startStarterSystem(ctx context.Context, wg *sync.WaitGroup) {
 	channels := newSystemChannels()
-	consumerReply := make(chan SupplyStatus, 1)
+	criticalReply := make(chan SupplyStatus, 1)
+	industrialReply := make(chan SupplyStatus, 1)
+	residentialReply := make(chan SupplyStatus, 1)
 
 	station := &WeatherStation{out: channels.WeatherRaw}
 	broadcaster := &Broadcaster{
@@ -78,21 +80,36 @@ func startStarterSystem(ctx context.Context, wg *sync.WaitGroup) {
 		productionIn: channels.ProductionChan,
 		forecastIn:   channels.ForecastChan,
 		demandIn:     channels.DemandChan,
+		latestDemand: make(map[string]DemandReport),
 	}
-	consumer := &SimpleConsumer{
-		id:        "consumer_1",
+	criticalConsumer := &SimpleConsumer{
+		id:        "critical_1",
+		priority:  PriorityCritical,
+		demandOut: channels.DemandChan,
+		replyChan: criticalReply,
+	}
+	industrialConsumer := &SimpleConsumer{
+		id:        "industrial_1",
+		priority:  PriorityIndustrial,
+		demandOut: channels.DemandChan,
+		replyChan: industrialReply,
+	}
+	residentialConsumer := &SimpleConsumer{
+		id:        "residential_1",
 		priority:  PriorityResidential,
 		demandOut: channels.DemandChan,
-		replyChan: consumerReply,
+		replyChan: residentialReply,
 	}
 
-	fmt.Println("[SYSTEM] Etap 5: dochodzi prosty konsument i realny popyt.")
-	fmt.Println("[SYSTEM] ESS i elektrownia beda dopiero w kolejnych etapach.")
+	fmt.Println("[SYSTEM] Etap 6: kilka prostych konsumentow i fan-in do GridHub.")
+	fmt.Println("[SYSTEM] Rejestracja dynamiczna i load shedding beda dopiero pozniej.")
 
 	station.Run(ctx, wg)
 	broadcaster.Run(ctx, wg)
 	windFarm.Run(ctx, wg)
 	predictor.Run(ctx, wg)
 	gridHub.Run(ctx, wg)
-	consumer.Run(ctx, wg)
+	criticalConsumer.Run(ctx, wg)
+	industrialConsumer.Run(ctx, wg)
+	residentialConsumer.Run(ctx, wg)
 }
