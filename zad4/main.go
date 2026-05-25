@@ -9,7 +9,7 @@ import (
 	"syscall"
 )
 
-// main uruchamia tylko szkielet i pokazuje graceful shutdown.
+// main uruchamia obecny etap i pokazuje graceful shutdown.
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -26,9 +26,9 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	fmt.Println("[SYSTEM] Etap 1: plan implementacji i architektura kanałów.")
+	fmt.Println("[SYSTEM] Etap 2: pogoda, broadcaster i jedna farma wiatrowa.")
 	startStarterSystem(ctx, &wg)
 
 	wg.Wait()
-	fmt.Println("[SYSTEM] Wszystkie komponenty planu zamknięte. Koniec.")
+	fmt.Println("[SYSTEM] Wszystkie uruchomione komponenty zamknięte. Koniec.")
 }

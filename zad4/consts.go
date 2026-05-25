@@ -8,8 +8,8 @@ const WeatherStep = 5 * time.Millisecond
 // GridStep określa, jak często GridHub podejmuje decyzje o alokacji energii.
 const GridStep = 100 * time.Millisecond
 
-// W ciągu jednego kroku GridStep mieści się dokładnie 12 kroków pogodowych.
-const WeatherPerGrid = int(GridStep / WeatherStep)
+// W tym projekcie przyjmujemy 12 krokow pogodowych na 1 GridStep.
+const WeatherPerGrid = 12
 
 // ForecastHorizon określa, na ile kroków sieciowych do przodu patrzy prognoza.
 const ForecastHorizon = 5

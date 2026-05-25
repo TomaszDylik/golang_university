@@ -50,25 +50,36 @@ func newSystemChannels() *SystemChannels {
 	}
 }
 
-// startStarterSystem nie uruchamia jeszcze logiki biznesowej.
-// Ma tylko pokazać, jakie gorutyny i kanały będą spinane w dalszych etapach.
+// startStarterSystem uruchamia obecne komponenty
 func startStarterSystem(ctx context.Context, wg *sync.WaitGroup) {
 	channels := newSystemChannels()
 
-	// Przykładowe kanały odpowiedzi dla startowych konsumentów.
-	channels.SupplyReplies["critical_1"] = make(chan SupplyStatus, 1)
-	channels.SupplyReplies["industrial_1"] = make(chan SupplyStatus, 1)
-	channels.SupplyReplies["residential_1"] = make(chan SupplyStatus, 1)
+	station := &WeatherStation{out: channels.WeatherRaw}
+	broadcaster := &Broadcaster{
+		in: channels.WeatherRaw,
+		subscribers: []chan<- WeatherData{
+			channels.BroadcasterToPredictor,
+			channels.BroadcasterToWindFarm,
+		},
+	}
+	windFarm := &WindFarm{
+		id:            "wind_farm_1",
+		weatherIn:     channels.BroadcasterToWindFarm,
+		controlIn:     channels.CurtailmentChan,
+		productionOut: channels.ProductionChan,
+	}
+	predictor := &SimplePredictor{
+		weatherIn:   channels.BroadcasterToPredictor,
+		forecastOut: channels.ForecastChan,
+		history:     make([]WeatherData, 0, PredictorBufferSize),
+	}
 
-	fmt.Println("[PLAN] Zainicjalizowano szkic architektury kanałów.")
-	fmt.Println("[PLAN] Jeden typ OZE: farma wiatrowa.")
-	fmt.Println("[PLAN] GridHub będzie centrum decyzji między pogodą, popytem, ESS i elektrownią.")
+	fmt.Println("[SYSTEM] Etap 3: startuje pogoda, broadcaster, farma i predictor.")
+	fmt.Println("[SYSTEM] GridHub bedzie dopiero w kolejnym etapie.")
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		<-ctx.Done()
-		_ = channels
-		fmt.Println("[PLAN] Graceful shutdown szkieletu zakończony.")
-	}()
+	station.Run(ctx, wg)
+	broadcaster.Run(ctx, wg)
+	windFarm.Run(ctx, wg)
+	predictor.Run(ctx, wg)
+	startForecastPreview(ctx, wg, channels.ForecastChan)
 }
