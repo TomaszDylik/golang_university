@@ -26,7 +26,7 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	fmt.Println("[SYSTEM] Etap 3: predictor dolaczony do warstwy pogodowej.")
+	fmt.Println("[SYSTEM] Etap 4: prosty GridHub dolaczony do symulacji.")
 	startStarterSystem(ctx, &wg)
 
 	wg.Wait()

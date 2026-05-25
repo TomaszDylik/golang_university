@@ -73,13 +73,17 @@ func startStarterSystem(ctx context.Context, wg *sync.WaitGroup) {
 		forecastOut: channels.ForecastChan,
 		history:     make([]WeatherData, 0, PredictorBufferSize),
 	}
+	gridHub := &GridHub{
+		productionIn: channels.ProductionChan,
+		forecastIn:   channels.ForecastChan,
+	}
 
-	fmt.Println("[SYSTEM] Etap 3: startuje pogoda, broadcaster, farma i predictor.")
-	fmt.Println("[SYSTEM] GridHub bedzie dopiero w kolejnym etapie.")
+	fmt.Println("[SYSTEM] Etap 4: startuje pogoda, farma, predictor i prosty GridHub.")
+	fmt.Println("[SYSTEM] Popyt i wykonawcy beda dopiero w kolejnych etapach.")
 
 	station.Run(ctx, wg)
 	broadcaster.Run(ctx, wg)
 	windFarm.Run(ctx, wg)
 	predictor.Run(ctx, wg)
-	startForecastPreview(ctx, wg, channels.ForecastChan)
+	gridHub.Run(ctx, wg)
 }
