@@ -80,6 +80,7 @@ func startStarterSystem(ctx context.Context, wg *sync.WaitGroup) {
 		productionIn:  channels.ProductionChan,
 		forecastIn:    channels.ForecastChan,
 		demandIn:      channels.DemandChan,
+		logOut:        channels.LogChan,
 		pendingDemand: make(map[string]DemandReport),
 	}
 	criticalConsumer := &SimpleConsumer{
@@ -101,9 +102,14 @@ func startStarterSystem(ctx context.Context, wg *sync.WaitGroup) {
 		replyChan: residentialReply,
 	}
 
-	fmt.Println("[SYSTEM] Etap 7: GridHub z load sheddingiem wedlug priorytetu.")
-	fmt.Println("[SYSTEM] ESS i elektrownia beda dopiero w kolejnych etapach.")
+	dataLogger := &FileDataLogger{
+		logIn:    channels.LogChan,
+		filename: "grid_log.jsonl",
+	}
 
+	fmt.Println("[SYSTEM] Etap 8: DataLogger zapisuje zdarzenia do grid_log.jsonl")
+
+	dataLogger.Run(ctx, wg)
 	station.Run(ctx, wg)
 	broadcaster.Run(ctx, wg)
 	windFarm.Run(ctx, wg)

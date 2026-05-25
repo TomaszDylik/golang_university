@@ -26,7 +26,7 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	fmt.Println("[SYSTEM] Etap 7: load shedding wedlug priorytetu.")
+	fmt.Println("[SYSTEM] Etap 8: DataLogger JSON lines.")
 	startStarterSystem(ctx, &wg)
 
 	wg.Wait()

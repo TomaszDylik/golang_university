@@ -10,13 +10,14 @@ import (
 
 // GridHub zbiera dane z kanalow i liczy bilans sieci z load sheddingiem.
 type GridHub struct {
-	productionIn <-chan ProductionReport
-	forecastIn   <-chan ForecastReport
-	demandIn     <-chan DemandReport
-	latestProd   ProductionReport
-	latestFc     ForecastReport
+	productionIn  <-chan ProductionReport
+	forecastIn    <-chan ForecastReport
+	demandIn      <-chan DemandReport
+	logOut        chan<- LogEntry
+	latestProd    ProductionReport
+	latestFc      ForecastReport
 	pendingDemand map[string]DemandReport
-	gridStep     int
+	gridStep      int
 }
 
 // allocate liczy przydział dla każdego konsumenta i odcina najniższe priorytety przy niedoborze.
@@ -54,6 +55,18 @@ func (g *GridHub) allocate() {
 				Reason:      "load shedding",
 			}
 			fmt.Printf("[GRID] LOAD SHED consumer=%s priorytet=%d\n", r.ConsumerID, r.Priority)
+			if g.logOut != nil {
+				select {
+				case g.logOut <- LogEntry{
+					GridStep:  g.gridStep,
+					Component: "GridHub",
+					Event:     "load_shed",
+					Message:   r.ConsumerID,
+					LoadShed:  true,
+				}:
+				default:
+				}
+			}
 		}
 
 		select {
@@ -102,6 +115,18 @@ func (g *GridHub) Run(ctx context.Context, wg *sync.WaitGroup) {
 					g.latestFc.ExpectedMW,
 					balance,
 				)
+
+				if g.logOut != nil {
+					select {
+					case g.logOut <- LogEntry{
+						GridStep:  g.gridStep,
+						Component: "GridHub",
+						Event:     "balance",
+						ValueMW:   balance,
+					}:
+					default:
+					}
+				}
 
 				g.allocate()
 			}
